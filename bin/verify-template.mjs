@@ -8,7 +8,8 @@
  * Checks:
  *  1. template.manifest.json exists, parses, and passes the manifest rules.
  *  2. src/content/schema.ts exists.
- *  3. No NEXT_PUBLIC_THEME / NEXT_PUBLIC_RESTAURANT_ID under src/.
+ *  3. No NEXT_PUBLIC_THEME / NEXT_PUBLIC_RESTAURANT_ID under src/, and no
+ *     NEXT_PUBLIC_*KEY/SECRET/TOKEN (the content API key is server-only).
  *  4. No req.geo under src/ (the kit's getGeo shim is the only allowed user).
  *  5. Warn (not fail) if next.config lacks `output: 'standalone'`.
  *
@@ -134,6 +135,17 @@ for (const name of ["NEXT_PUBLIC_THEME", "NEXT_PUBLIC_RESTAURANT_ID"]) {
         hits.map((h) => `      ${h.file}:${h.line}: ${h.text}`).join("\n"),
     );
   }
+}
+
+// Secrets must NEVER be exposed via NEXT_PUBLIC_ — the content key (and any
+// key/secret/token) is server-only by contract.
+const publicSecretHits = grep(srcDir, /NEXT_PUBLIC_\w*(KEY|SECRET|TOKEN)/);
+if (publicSecretHits.length > 0) {
+  failures.push(
+    "NEXT_PUBLIC_*KEY/SECRET/TOKEN found under src/ — secrets (e.g. CONTENT_API_KEY) are " +
+      "server-only and must never be NEXT_PUBLIC_:\n" +
+      publicSecretHits.map((h) => `      ${h.file}:${h.line}: ${h.text}`).join("\n"),
+  );
 }
 
 // --- 4. req.geo --------------------------------------------------------------

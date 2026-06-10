@@ -16,17 +16,29 @@ export interface GeoRequest {
 }
 
 /**
- * Prefer Vercel's `req.geo`; fall back to Cloudflare headers
- * (`cf-ipcountry` / `cf-region` / `cf-ipcity`); else `{}` (e.g. local dev).
+ * Resolution order:
+ * 1. `req.geo` — Vercel + Next ≤14 (removed from NextRequest in Next 15).
+ * 2. `x-vercel-ip-country` / `x-vercel-ip-country-region` / `x-vercel-ip-city`
+ *    — Vercel headers, the only source on Vercel + Next 15.
+ * 3. `cf-ipcountry` / `cf-region` / `cf-ipcity` — Cloudflare headers.
+ * 4. `{}` (e.g. local dev).
  */
 export function getGeo(req: GeoRequest): GeoInfo {
   const geo = req.geo;
   if (geo && (geo.country || geo.region || geo.city)) {
     return { country: geo.country, region: geo.region, city: geo.city };
   }
-  const country = req.headers.get("cf-ipcountry") ?? undefined;
-  const region = req.headers.get("cf-region") ?? undefined;
-  const city = req.headers.get("cf-ipcity") ?? undefined;
-  if (country || region || city) return { country, region, city };
-  return {};
+
+  const fromHeaders = (countryKey: string, regionKey: string, cityKey: string): GeoInfo | null => {
+    const country = req.headers.get(countryKey) ?? undefined;
+    const region = req.headers.get(regionKey) ?? undefined;
+    const city = req.headers.get(cityKey) ?? undefined;
+    return country || region || city ? { country, region, city } : null;
+  };
+
+  return (
+    fromHeaders("x-vercel-ip-country", "x-vercel-ip-country-region", "x-vercel-ip-city") ??
+    fromHeaders("cf-ipcountry", "cf-region", "cf-ipcity") ??
+    {}
+  );
 }

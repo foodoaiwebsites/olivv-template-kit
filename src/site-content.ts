@@ -95,5 +95,31 @@ export async function fetchSiteContent(
       `@olivv/template-kit: content fetch for client "${clientId}" failed with status ${res.status}.`,
     );
   }
-  return (await res.json()) as SiteContentDoc;
+  return assertSiteContentDoc(await res.json(), clientId);
+}
+
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+/**
+ * Minimal runtime shape check for the content response (deliberately
+ * dependency-free — this is the template hot path, no zod here).
+ */
+function assertSiteContentDoc(json: unknown, clientId: string): SiteContentDoc {
+  const problems: string[] = [];
+  if (!isRecord(json)) {
+    problems.push("response body is not an object");
+  } else {
+    if (typeof json.clientId !== "string") problems.push("clientId is not a string");
+    if (!isRecord(json.content)) problems.push("content is not an object");
+    if (!isRecord(json.theme)) problems.push("theme is not an object");
+    if (typeof json.version !== "number") problems.push("version is not a number");
+  }
+  if (problems.length > 0) {
+    throw new Error(
+      `@olivv/template-kit: malformed content doc for client "${clientId}": ${problems.join("; ")}.`,
+    );
+  }
+  return json as SiteContentDoc;
 }
