@@ -3,7 +3,7 @@
 The shared kit that turns a standalone Next.js restaurant template (like
 `olivv-nur-web` or `vu-lounge`) into a **multi-tenant builder template**: one
 deployment serves any number of clients, content is fetched at runtime from the
-platform Content API, live-editable in the Nur Builder, and published via tag
+platform Content API, live-editable in the Olivv Builder, and published via tag
 revalidation — never a rebuild.
 
 The kit owns the **invariants** (tenant resolution, content fetching, theming,

@@ -2,7 +2,7 @@
 import { useEffect } from "react";
 
 /**
- * Tiny in-page agent that lets the Nur Builder live-edit a template site even
+ * Tiny in-page agent that lets the Olivv Builder live-edit a template site even
  * when it's loaded cross-origin (e.g. the deployed URL inside the builder
  * iframe).
  *
