@@ -96,7 +96,13 @@ export type MiddlewareHandler = (
  */
 export function withTenantResolution(handler?: MiddlewareHandler) {
   return async function middleware(req: NextRequest): Promise<Response> {
-    const clientId = await clientIdFromHost(req.headers.get("host") ?? "");
+    // Builder preview pins the tenant explicitly: `?__edit=1&client=<id>` lets
+    // the editor preview ANY client regardless of the (dev) Host. Edit-mode
+    // ONLY — in production a normal visitor's Host is the source of truth and
+    // a `client` query is ignored, so it cannot be spoofed.
+    const editPin =
+      req.nextUrl.searchParams.has("__edit") && req.nextUrl.searchParams.get("client");
+    const clientId = editPin || (await clientIdFromHost(req.headers.get("host") ?? ""));
     // Mutate the incoming NextRequest headers so the wrapped handler (and the
     // default pass-through below) sees the resolved tenant.
     if (clientId) req.headers.set(CLIENT_ID_HEADER, clientId);
