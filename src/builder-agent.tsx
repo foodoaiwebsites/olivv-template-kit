@@ -18,13 +18,21 @@ import { useEffect } from "react";
  * - `setField { path, value }` — precise targeting via `[data-field="<path>"]`;
  *   sets textContent (or `src` for IMG/VIDEO/SOURCE) and dispatches a
  *   `builder:field-updated` CustomEvent so templates can re-run animations.
+ *
+ * Origin locking: pass `allowedOrigin` (e.g. `"https://builder.olivv.app"`) to
+ * accept messages only from that origin and target `__builderReady` at it. When
+ * the prop is omitted, `NEXT_PUBLIC_BUILDER_ORIGIN` (inlined at build time) is
+ * used as the default; if neither is set, the agent falls back to accepting any
+ * origin (legacy behavior — set one of the two in production).
  */
-export default function BuilderAgent() {
+export default function BuilderAgent({ allowedOrigin }: { allowedOrigin?: string } = {}) {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const embedded = window.parent && window.parent !== window;
     const enabled = new URLSearchParams(window.location.search).has("__edit");
     if (!embedded || !enabled) return;
+
+    const lockedOrigin = allowedOrigin ?? process.env.NEXT_PUBLIC_BUILDER_ORIGIN ?? undefined;
 
     const norm = (s: string) => s.replace(/\s+/g, " ").trim();
 
@@ -89,6 +97,7 @@ export default function BuilderAgent() {
     };
 
     const onMsg = (e: MessageEvent) => {
+      if (lockedOrigin && e.origin !== lockedOrigin) return;
       const d = e.data as {
         __builder?: boolean;
         type?: string;
@@ -107,12 +116,12 @@ export default function BuilderAgent() {
 
     window.addEventListener("message", onMsg);
     try {
-      window.parent.postMessage({ __builderReady: true }, "*");
+      window.parent.postMessage({ __builderReady: true }, lockedOrigin ?? "*");
     } catch {
       /* ignore */
     }
     return () => window.removeEventListener("message", onMsg);
-  }, []);
+  }, [allowedOrigin]);
 
   return null;
 }

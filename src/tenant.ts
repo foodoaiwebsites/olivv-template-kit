@@ -9,26 +9,30 @@ import { NextResponse, type NextRequest } from "next/server";
 export const CLIENT_ID_HEADER = "x-client-id";
 
 const CACHE_TTL_MS = 60_000;
+/** Hosts are attacker-controlled input — cap the cache so it can't grow unbounded. */
+const CACHE_MAX_ENTRIES = 1000;
 
 interface CacheEntry {
   clientId: string | null;
   expiresAt: number;
 }
 
-/** Module-level resolve cache (per server instance), 60s TTL. */
+/** Module-level resolve cache (per server instance), 60s TTL, capped size. */
 const resolveCache = new Map<string, CacheEntry>();
 
 /**
  * Resolve a Host header value to a clientId.
  *
  * - Strips the port, lowercases.
- * - `DEV_CLIENT_ID` env (if set) short-circuits everything — local dev fallback.
+ * - `DEV_CLIENT_ID` env (if set) short-circuits everything — local dev fallback,
+ *   ignored when `NODE_ENV === "production"` so a stray prod env var can't
+ *   collapse every host to one client.
  * - Otherwise asks the Content API: `GET /site-content/resolve?host=<host>`.
- * - Results (including misses) are cached for 60s.
+ * - Results (including misses) are cached for 60s (capped at 1000 entries).
  */
 export async function clientIdFromHost(host: string): Promise<string | null> {
   const devClientId = process.env.DEV_CLIENT_ID;
-  if (devClientId) return devClientId;
+  if (devClientId && process.env.NODE_ENV !== "production") return devClientId;
 
   const normalized = host.split(":")[0]?.trim().toLowerCase() ?? "";
   if (!normalized) return null;
@@ -37,6 +41,11 @@ export async function clientIdFromHost(host: string): Promise<string | null> {
   if (cached && cached.expiresAt > Date.now()) return cached.clientId;
 
   const clientId = await resolveViaApi(normalized);
+  if (resolveCache.size >= CACHE_MAX_ENTRIES) {
+    // Evict the oldest entry (first insertion-order key) to keep the cap.
+    const oldestKey = resolveCache.keys().next().value;
+    if (oldestKey !== undefined) resolveCache.delete(oldestKey);
+  }
   resolveCache.set(normalized, { clientId, expiresAt: Date.now() + CACHE_TTL_MS });
   return clientId;
 }
@@ -100,6 +109,9 @@ export function withTenantResolution(handler?: MiddlewareHandler) {
  * `x-middleware-request-*` — the encoding `NextResponse.next({ request })`
  * uses). When the inner handler returned a plain response with no override set,
  * we must list ALL request headers (Next deletes any header not listed).
+ *
+ * NOTE: relies on Next's middleware header-override encoding; covered by
+ * integration test when first template is converted.
  */
 function forwardRequestHeader(
   res: Response,

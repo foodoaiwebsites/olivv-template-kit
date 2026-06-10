@@ -7,15 +7,18 @@ import { createElement, type ReactElement } from "react";
 
 /**
  * `{ "--primary": "24 95% 53%", accent: "#fff" }` → `:root{--primary:24 95% 53%;--accent:#fff}`.
- * Tokens are trusted platform data; names are still stripped of `;{}` defensively
- * and prefixed with `--` when missing, and `<`/`>` are stripped from values so a
- * token can never close the surrounding `<style>` tag (no valid CSS var needs them).
+ * Tokens are trusted platform data, but both names AND values are stripped of
+ * `;{}` so a value can never escape the `:root{}` block and inject arbitrary CSS
+ * rules, and `<`/`>` are stripped so a token can never close the surrounding
+ * `<style>` tag. No valid CSS custom-property value for this token format
+ * (`"h s% l%"` channels or hex) needs any of these characters. Names are also
+ * prefixed with `--` when missing.
  */
 export function themeStyleVars(tokens: Record<string, string>): string {
   const decls = Object.entries(tokens).map(([rawName, rawValue]) => {
     const name = rawName.replace(/[;{}]/g, "");
     const varName = name.startsWith("--") ? name : `--${name}`;
-    const value = rawValue.replace(/[<>]/g, "");
+    const value = rawValue.replace(/[<>;{}]/g, "");
     return `${varName}:${value}`;
   });
   return `:root{${decls.join(";")}}`;

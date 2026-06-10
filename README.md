@@ -41,7 +41,8 @@ Requires `next >= 14 < 16` and `react >= 18` (peer dependencies).
 | `CONTENT_API_KEY` | server-only — **NEVER `NEXT_PUBLIC_`** | API key for published reads + host resolution |
 | `REVALIDATE_HMAC_KEY` | server-only | Shared secret verifying `POST /api/revalidate` |
 | `TEMPLATE_ID` | server-only | This template's id (matches `template.manifest.json`) |
-| `DEV_CLIENT_ID` | dev only | Skip host resolution locally — every request resolves to this client |
+| `DEV_CLIENT_ID` | dev only — ignored when `NODE_ENV=production` | Skip host resolution locally — every request resolves to this client |
+| `NEXT_PUBLIC_BUILDER_ORIGIN` | client-safe (no secret) | Default `allowedOrigin` for `BuilderAgent` postMessage locking |
 
 ## Wire a template in 6 imports
 
@@ -100,6 +101,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {children}
         </ContentProvider>
         <BuilderAgent /> {/* dormant unless iframed with ?__edit=1 */}
+        {/* optional: <BuilderAgent allowedOrigin="https://builder.olivv.app" /> locks
+            postMessage to that origin; defaults to NEXT_PUBLIC_BUILDER_ORIGIN when set */}
       </body>
     </html>
   );
@@ -178,8 +181,9 @@ npx verify-template
 
 Fails (non-zero exit) on: missing/invalid `template.manifest.json`, missing
 `src/content/schema.ts`, `NEXT_PUBLIC_THEME` / `NEXT_PUBLIC_RESTAURANT_ID`
-anywhere under `src/`, or any direct `req.geo` use under `src/` (use `getGeo`).
-Warns if `next.config` lacks `output: 'standalone'`.
+anywhere under `src/`, any `NEXT_PUBLIC_*KEY/SECRET/TOKEN` under `src/` (the
+content API key is server-only), or any direct `req.geo` use under `src/` (use
+`getGeo`). Warns if `next.config` lacks `output: 'standalone'`.
 
 ## Public API
 
@@ -188,10 +192,10 @@ From `@olivv/template-kit`:
 - `fetchSiteContent(clientId, opts?)`, `contentTag(clientId)`, `SiteContentDoc`, `FetchOpts` — server-only Content API client
 - `clientIdFromHost(host)`, `withTenantResolution(handler?)`, `CLIENT_ID_HEADER` — tenant resolution
 - `ContentProvider<T>`, `useContent<T>()`, `ContentValue<T>` — generic content context (client)
-- `BuilderAgent` — live-edit agent (client; dormant outside the builder)
+- `BuilderAgent` — live-edit agent (client; dormant outside the builder). Optional `allowedOrigin` prop locks postMessage to the builder origin (default: `NEXT_PUBLIC_BUILDER_ORIGIN`)
 - `createRevalidateRoute({ hmacKey })`, `verifyHmacSignature(body, sig, key)` — publish revalidation
 - `themeStyleVars(tokens)`, `ThemeStyle`, `hexToHslChannels`, `hslChannelsToHex` — theming
-- `getGeo(req)` — provider-agnostic geo shim
+- `getGeo(req)` — provider-agnostic geo shim (`req.geo` → `x-vercel-ip-*` headers → `cf-*` headers → `{}`)
 - `defineTemplateManifest(m)`, `KIT_SCHEMA_VERSION`, `TemplateManifest` — manifest contract
 
 Notes:

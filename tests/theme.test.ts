@@ -36,10 +36,17 @@ describe("themeStyleVars", () => {
     );
   });
 
-  test("strips ;{} from names and <> from values defensively", () => {
+  test("strips ;{} from names and <>;{} from values defensively", () => {
     expect(themeStyleVars({ "pri;ma{r}y": "red", safe: "</style><script>" })).toBe(
       ":root{--primary:red;--safe:/stylescript}",
     );
+  });
+
+  test("neutralizes a CSS-injection attempt in a value", () => {
+    const out = themeStyleVars({ "--primary": "red} body{background:url(//evil)}" });
+    // The injected braces/semicolons are stripped, so the value cannot escape :root{}.
+    expect(out).toBe(":root{--primary:red bodybackground:url(//evil)}");
+    expect(out.indexOf("}")).toBe(out.length - 1); // only the closing :root brace survives
   });
 
   test("renders empty token map as empty :root", () => {
