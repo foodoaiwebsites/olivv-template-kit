@@ -65,8 +65,13 @@ async function resolveViaApi(host: string): Promise<string | null> {
       { headers: { "x-api-key": apiKey }, cache: "no-store" },
     );
     if (!res.ok) return null;
-    const body = (await res.json()) as { clientId?: unknown };
-    return typeof body.clientId === "string" && body.clientId ? body.clientId : null;
+    // The Content API wraps responses in an `ok()` envelope ({ success, data });
+    // tolerate both the enveloped and a bare shape.
+    const raw = (await res.json()) as
+      | { clientId?: unknown; data?: { clientId?: unknown } }
+      | null;
+    const clientId = raw?.data?.clientId ?? raw?.clientId;
+    return typeof clientId === "string" && clientId ? clientId : null;
   } catch {
     return null; // network failure → unresolved, not a crash in middleware
   }
