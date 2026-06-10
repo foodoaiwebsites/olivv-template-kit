@@ -32,3 +32,15 @@ export {
   KIT_SCHEMA_VERSION,
   type TemplateManifest,
 } from "./manifest";
+export {
+  defineTemplateSchema,
+  toRegistryManifest,
+  TEMPLATE_SCHEMA_VERSION,
+  type TemplateSchemaV2,
+  type PageSpec,
+  type ThemeTokenSpec,
+  type MediaSlotSpec,
+  type VariationSpec,
+  type TemplateRegistryManifest,
+  type RegistryManifestPage,
+} from "./template-schema";
