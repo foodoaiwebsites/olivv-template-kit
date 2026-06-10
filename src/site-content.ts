@@ -1,0 +1,99 @@
+/**
+ * Server-only Content API client.
+ *
+ * SERVER-ONLY: this module reads `CONTENT_API_KEY` and must never be imported
+ * from a client component. We intentionally do not depend on the `server-only`
+ * package (to keep the kit dependency-light); instead a runtime guard throws if
+ * the fetch is ever invoked in a browser. If your template already depends on
+ * `server-only`, feel free to add `import "server-only"` at your import site.
+ */
+
+export interface SiteContentDoc {
+  clientId: string;
+  templateId: string;
+  domain?: string;
+  restaurantId?: string;
+  locales: string[];
+  /** Content keyed by locale, e.g. `{ en: {...}, ar: {...} }`. */
+  content: Record<string, unknown>;
+  /** Theme tokens, e.g. `{ "--primary": "24 95% 53%" }`. */
+  theme: Record<string, string>;
+  version: number;
+}
+
+export interface FetchOpts {
+  /** Builder preview mode — fetches the unpublished draft doc. */
+  draft?: boolean;
+  /** Required when `draft` is true. */
+  previewToken?: string;
+  /** ISR revalidate window in seconds for published reads. Default 300. */
+  revalidate?: number;
+}
+
+const DEFAULT_REVALIDATE_SECONDS = 300;
+
+function requireEnv(name: "CONTENT_API_URL" | "CONTENT_API_KEY"): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(
+      `@olivv/template-kit: missing required env var ${name}. ` +
+        `Set it in the deployment environment (server-only — never NEXT_PUBLIC_).`,
+    );
+  }
+  return value;
+}
+
+/** The tag busted by the revalidate route: `content:<clientId>`. */
+export function contentTag(clientId: string): string {
+  return `content:${clientId}`;
+}
+
+/**
+ * Fetch the site-content doc for a client.
+ *
+ * - Published: `GET {CONTENT_API_URL}/site-content/{clientId}` with `x-api-key`,
+ *   ISR-cached and tagged `content:<clientId>` so publish can revalidate it.
+ * - Draft: `GET {CONTENT_API_URL}/builder/sites/{clientId}/draft` with a bearer
+ *   preview token, never cached.
+ */
+export async function fetchSiteContent(
+  clientId: string,
+  opts: FetchOpts = {},
+): Promise<SiteContentDoc> {
+  if (typeof window !== "undefined") {
+    throw new Error(
+      "@olivv/template-kit: fetchSiteContent is server-only and must not run in the browser.",
+    );
+  }
+  const baseUrl = requireEnv("CONTENT_API_URL").replace(/\/$/, "");
+
+  let res: Response;
+  if (opts.draft) {
+    if (!opts.previewToken) {
+      throw new Error("@olivv/template-kit: previewToken is required when draft is true.");
+    }
+    res = await fetch(`${baseUrl}/builder/sites/${encodeURIComponent(clientId)}/draft`, {
+      headers: { Authorization: `Bearer ${opts.previewToken}` },
+      cache: "no-store",
+    });
+  } else {
+    const apiKey = requireEnv("CONTENT_API_KEY");
+    const init: RequestInit & {
+      next: { revalidate: number; tags: string[] };
+    } = {
+      headers: { "x-api-key": apiKey },
+      next: {
+        revalidate: opts.revalidate ?? DEFAULT_REVALIDATE_SECONDS,
+        tags: [contentTag(clientId)],
+      },
+    };
+    res = await fetch(`${baseUrl}/site-content/${encodeURIComponent(clientId)}`, init);
+  }
+
+  if (!res.ok) {
+    throw new Error(
+      `@olivv/template-kit: content fetch for client "${clientId}" failed with status ${res.status}.`,
+    );
+  }
+  return (await res.json()) as SiteContentDoc;
+}
