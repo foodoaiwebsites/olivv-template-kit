@@ -25,6 +25,15 @@ function validSchema(): TemplateSchemaV2 {
           options: [{ value: "var(--font-playfair)", label: "Playfair Display" }],
         },
       ],
+      presets: [
+        { key: "base", label: "Default", tokens: { primary: "0 0% 9%" } },
+        {
+          key: "christmas",
+          label: "Christmas",
+          seasonal: true,
+          tokens: { primary: "350 60% 34%" },
+        },
+      ],
     },
     media: {
       slots: [
@@ -41,6 +50,12 @@ function validSchema(): TemplateSchemaV2 {
         removable: false,
         seo: true,
         sections: z.object({ hero: z.object({ headline: z.string() }) }),
+        variants: {
+          hero: [
+            { key: "default", label: "Default" },
+            { key: "split", label: "Split layout" },
+          ],
+        },
       },
       {
         slug: "about-us",
@@ -95,6 +110,63 @@ describe("defineTemplateSchema", () => {
     const s = validSchema();
     s.media.slots.push({ key: "og.image", type: "image", label: "Dup" });
     expect(() => defineTemplateSchema(s)).toThrow(/duplicate media slot key "og.image"/);
+  });
+
+  test("rejects duplicate theme preset keys", () => {
+    const s = validSchema();
+    s.theme.presets!.push({ key: "base", label: "Dup", tokens: {} });
+    expect(() => defineTemplateSchema(s)).toThrow(/duplicate theme preset key "base"/);
+  });
+
+  test("rejects empty theme preset keys", () => {
+    const s = validSchema();
+    s.theme.presets!.push({ key: "", label: "Empty", tokens: {} });
+    expect(() => defineTemplateSchema(s)).toThrow(
+      /theme preset keys must be non-empty strings/,
+    );
+  });
+
+  test("accepts a declaration without theme presets", () => {
+    const s = validSchema();
+    delete s.theme.presets;
+    expect(defineTemplateSchema(s)).toBe(s);
+  });
+
+  test("rejects page variants referencing an unknown section", () => {
+    const s = validSchema();
+    s.pages[0]!.variants = { nonexistent: [{ key: "default", label: "Default" }] };
+    expect(() => defineTemplateSchema(s)).toThrow(
+      /page "home" variants reference unknown section "nonexistent"/,
+    );
+  });
+
+  test("rejects an empty variant list for a section", () => {
+    const s = validSchema();
+    s.pages[0]!.variants = { hero: [] };
+    expect(() => defineTemplateSchema(s)).toThrow(
+      /page "home" section "hero" must declare at least one variant/,
+    );
+  });
+
+  test("rejects duplicate variant keys within a section", () => {
+    const s = validSchema();
+    s.pages[0]!.variants = {
+      hero: [
+        { key: "default", label: "Default" },
+        { key: "default", label: "Dup" },
+      ],
+    };
+    expect(() => defineTemplateSchema(s)).toThrow(
+      /duplicate page "home" section "hero" variant key "default"/,
+    );
+  });
+
+  test("rejects empty variant keys within a section", () => {
+    const s = validSchema();
+    s.pages[0]!.variants = { hero: [{ key: "", label: "Empty" }] };
+    expect(() => defineTemplateSchema(s)).toThrow(
+      /page "home" section "hero" variant keys must be non-empty strings/,
+    );
   });
 
   test("rejects empty variations", () => {
@@ -153,7 +225,8 @@ describe("toRegistryManifest", () => {
     expect(manifest.schemaVersion).toBe(2);
     expect(manifest.locales).toEqual(["en", "ar"]);
     expect(manifest.global).toEqual({ type: "object", marker: 1 });
-    expect(manifest.theme).toEqual(s.theme.tokens);
+    expect(manifest.theme.tokens).toEqual(s.theme.tokens);
+    expect(manifest.theme.presets).toEqual(s.theme.presets!);
     expect(manifest.media).toEqual(s.media.slots);
     expect(manifest.variations).toEqual(s.variations);
     expect(manifest.pages.map((p) => p.slug)).toEqual(["home", "about-us"]);
@@ -164,7 +237,22 @@ describe("toRegistryManifest", () => {
       removable: false,
       seo: true,
       sections: { type: "object", marker: 2 },
+      variants: {
+        hero: [
+          { key: "default", label: "Default" },
+          { key: "split", label: "Split layout" },
+        ],
+      },
     });
+    // pages without variants must not gain the key
+    expect("variants" in manifest.pages[1]!).toBe(false);
+  });
+
+  test("omits theme.presets when the declaration has none", () => {
+    const s = validSchema();
+    delete s.theme.presets;
+    const manifest = toRegistryManifest(defineTemplateSchema(s), () => ({ type: "object" }));
+    expect("presets" in manifest.theme).toBe(false);
   });
 
   test("manifest is JSON-serialisable and detached from the declaration", () => {
@@ -173,7 +261,11 @@ describe("toRegistryManifest", () => {
     const roundTripped: unknown = JSON.parse(JSON.stringify(manifest));
     expect(roundTripped).toEqual(manifest as unknown as Record<string, unknown>);
     // mutating the manifest must not touch the declaration
-    manifest.theme[0]!.key = "mutated";
+    manifest.theme.tokens[0]!.key = "mutated";
     expect(s.theme.tokens[0]!.key).toBe("primary");
+    manifest.theme.presets![0]!.tokens["primary"] = "mutated";
+    expect(s.theme.presets![0]!.tokens["primary"]).toBe("0 0% 9%");
+    manifest.pages[0]!.variants!["hero"]![0]!.key = "mutated";
+    expect(s.pages[0]!.variants!["hero"]![0]!.key).toBe("default");
   });
 });

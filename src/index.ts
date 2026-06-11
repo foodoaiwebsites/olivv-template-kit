@@ -39,6 +39,7 @@ export {
   type TemplateSchemaV2,
   type PageSpec,
   type ThemeTokenSpec,
+  type ThemePreset,
   type MediaSlotSpec,
   type VariationSpec,
   type TemplateRegistryManifest,

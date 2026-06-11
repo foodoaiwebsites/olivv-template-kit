@@ -49,6 +49,21 @@ export type VariationSpec = {
   label: string;
 };
 
+/**
+ * One named theme preset the template ships HARDCODED (a `.theme-<key>` class
+ * in its theme.css): a bundle of token overrides selectable as a whole.
+ * Seasonal presets (`seasonal: true`) are campaign looks (christmas, eid, …)
+ * meant to be applied temporarily. The DB stores only the client's chosen
+ * preset key — never the token values, which live in the template build.
+ */
+export type ThemePreset = {
+  key: string;
+  label: string;
+  seasonal?: boolean;
+  /** Token overrides, keyed like ThemeTokenSpec.key (no leading `--`). */
+  tokens: Record<string, string>;
+};
+
 /** One page the template ships, with its editable section content schema. */
 export interface PageSpec<S extends ZodTypeAny = ZodTypeAny> {
   /** Stable identifier, e.g. "home", "about-us". */
@@ -63,6 +78,14 @@ export interface PageSpec<S extends ZodTypeAny = ZodTypeAny> {
   seo: boolean;
   /** Zod object describing this page's editable section content. */
   sections: S;
+  /**
+   * Hardcoded layout variants per SECTION of this page, keyed by the section
+   * key in `sections` (e.g. "hero"). This is the PRIMARY variation mechanism:
+   * each section may ship alternate hardcoded layouts, and the DB stores only
+   * the client's chosen variant key per section. The top-level `variations`
+   * remains for optional site-wide looks.
+   */
+  variants?: Record<string, VariationSpec[]>;
 }
 
 /** A template's complete v2 declaration. */
@@ -73,7 +96,7 @@ export interface TemplateSchemaV2 {
   locales: string[];
   /** Site-wide brand content + default SEO (zod object). */
   global: ZodTypeAny;
-  theme: { tokens: ThemeTokenSpec[] };
+  theme: { tokens: ThemeTokenSpec[]; presets?: ThemePreset[] };
   media: { slots: MediaSlotSpec[] };
   variations: VariationSpec[];
   pages: PageSpec[];
@@ -88,6 +111,8 @@ export interface RegistryManifestPage {
   seo: boolean;
   /** JSON-Schema of the page's section content. */
   sections: object;
+  /** Hardcoded per-section layout variants, when the page declares any. */
+  variants?: Record<string, VariationSpec[]>;
 }
 
 /** The plain-JSON REGISTRY MANIFEST the platform stores per template. */
@@ -97,7 +122,7 @@ export interface TemplateRegistryManifest {
   locales: string[];
   /** JSON-Schema of the site-wide global content. */
   global: object;
-  theme: ThemeTokenSpec[];
+  theme: { tokens: ThemeTokenSpec[]; presets?: ThemePreset[] };
   media: MediaSlotSpec[];
   variations: VariationSpec[];
   pages: RegistryManifestPage[];
@@ -109,6 +134,23 @@ function uniqueViolations(label: string, keys: string[], out: string[]): void {
     if (seen.has(key)) out.push(`duplicate ${label} "${key}"`);
     seen.add(key);
   }
+}
+
+/**
+ * Best-effort introspection of a zod OBJECT schema's top-level keys (duck-typed
+ * on zod v3's `_def` so the kit never depends on a zod runtime). Returns null
+ * when the schema is not a plain ZodObject (then section-key checks are
+ * skipped — best-effort by design).
+ */
+function zodObjectKeys(schema: ZodTypeAny): string[] | null {
+  const def = (schema as unknown as { _def?: { typeName?: unknown; shape?: unknown } })._def;
+  if (!def || def.typeName !== "ZodObject") return null;
+  const shape =
+    typeof def.shape === "function"
+      ? (def.shape as () => Record<string, unknown>)()
+      : def.shape;
+  if (!shape || typeof shape !== "object") return null;
+  return Object.keys(shape);
 }
 
 /**
@@ -142,6 +184,19 @@ export function defineTemplateSchema(s: TemplateSchemaV2): TemplateSchemaV2 {
     problems,
   );
 
+  if (s.theme.presets !== undefined) {
+    for (const preset of s.theme.presets) {
+      if (!preset.key || typeof preset.key !== "string") {
+        problems.push("theme preset keys must be non-empty strings");
+      }
+    }
+    uniqueViolations(
+      "theme preset key",
+      s.theme.presets.map((p) => p.key),
+      problems,
+    );
+  }
+
   if (s.variations.length === 0) {
     problems.push('variations must contain at least one entry (e.g. "default")');
   }
@@ -167,6 +222,34 @@ export function defineTemplateSchema(s: TemplateSchemaV2): TemplateSchemaV2 {
     for (const page of s.pages) {
       if (!page.path.startsWith("/")) {
         problems.push(`page "${page.slug}" path must start with "/" (got "${page.path}")`);
+      }
+      if (page.variants !== undefined) {
+        const sectionKeys = zodObjectKeys(page.sections);
+        for (const [sectionKey, variantList] of Object.entries(page.variants)) {
+          if (sectionKeys !== null && !sectionKeys.includes(sectionKey)) {
+            problems.push(
+              `page "${page.slug}" variants reference unknown section "${sectionKey}"`,
+            );
+          }
+          if (!Array.isArray(variantList) || variantList.length === 0) {
+            problems.push(
+              `page "${page.slug}" section "${sectionKey}" must declare at least one variant`,
+            );
+            continue;
+          }
+          for (const variant of variantList) {
+            if (!variant.key || typeof variant.key !== "string") {
+              problems.push(
+                `page "${page.slug}" section "${sectionKey}" variant keys must be non-empty strings`,
+              );
+            }
+          }
+          uniqueViolations(
+            `page "${page.slug}" section "${sectionKey}" variant key`,
+            variantList.map((v) => v.key),
+            problems,
+          );
+        }
       }
     }
     if (!s.pages.some((p) => !p.removable)) {
@@ -198,7 +281,12 @@ export function toRegistryManifest(
     schemaVersion: s.schemaVersion,
     locales: [...s.locales],
     global: zodToJson(s.global),
-    theme: s.theme.tokens.map((t) => ({ ...t })),
+    theme: {
+      tokens: s.theme.tokens.map((t) => ({ ...t })),
+      ...(s.theme.presets !== undefined && {
+        presets: s.theme.presets.map((p) => ({ ...p, tokens: { ...p.tokens } })),
+      }),
+    },
     media: s.media.slots.map((m) => ({ ...m })),
     variations: s.variations.map((v) => ({ ...v })),
     pages: s.pages.map((p) => ({
@@ -208,6 +296,11 @@ export function toRegistryManifest(
       removable: p.removable,
       seo: p.seo,
       sections: zodToJson(p.sections),
+      ...(p.variants !== undefined && {
+        variants: Object.fromEntries(
+          Object.entries(p.variants).map(([k, list]) => [k, list.map((v) => ({ ...v }))]),
+        ),
+      }),
     })),
   };
 }
