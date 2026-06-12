@@ -1,4 +1,5 @@
 node_modules/
-dist/
+# dist/ IS committed — git-tag consumers install it directly (no build-on-install).
+# When the kit moves to a registry, restore this ignore and build dist in CI.
 *.tsbuildinfo
 .DS_Store
