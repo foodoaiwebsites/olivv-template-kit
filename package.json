@@ -1,23 +1,36 @@
 {
   "name": "@olivv/template-kit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Shared kit that makes standalone Next.js restaurant templates multi-tenant: runtime content, live edit, publish via revalidation.",
   "type": "module",
   "private": true,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./builder-agent": "./src/builder-agent.tsx",
-    "./content-provider": "./src/content-provider.tsx"
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./builder-agent": {
+      "types": "./dist/builder-agent.d.ts",
+      "default": "./dist/builder-agent.js"
+    },
+    "./content-provider": {
+      "types": "./dist/content-provider.d.ts",
+      "default": "./dist/content-provider.js"
+    }
   },
   "bin": {
     "verify-template": "./bin/verify-template.mjs"
   },
   "files": [
+    "dist",
     "src",
     "bin",
     "README.md"
   ],
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "type-check": "tsc --noEmit",
     "test": "bun test"
   },
