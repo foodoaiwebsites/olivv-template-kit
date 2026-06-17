@@ -7,6 +7,23 @@
  * the fetch is ever invoked in a browser. If your template already depends on
  * `server-only`, feel free to add `import "server-only"` at your import site.
  */
+/** Resolve a feature-page URL template, substituting `{slug}` and `{restaurantId}`. */
+export function resolveFeaturePageUrl(template, vars) {
+    return template
+        .replaceAll("{slug}", vars.slug)
+        .replaceAll("{restaurantId}", vars.tenantId)
+        .replaceAll("{resturantId}", vars.tenantId);
+}
+/** Expand the flat `featurePages` config into ordered, resolved per-app entries. */
+export function featurePageEntries(fp) {
+    const r = (t) => resolveFeaturePageUrl(t, { slug: fp.slug, tenantId: fp.tenantId });
+    return [
+        { appKey: "order", enabledKey: "onlineOrder", label: "Online Ordering", enabled: fp.onlineOrder, slug: fp.onlineOrderDefaultSlug, url: r(fp.onlineOrderDefaultURL), chrome: true, inNav: true },
+        { appKey: "booking", enabledKey: "tableBookingOptions", label: "Table Booking", enabled: fp.tableBookingOptions, slug: fp.bookingDefaultSlug, url: r(fp.bookingDefaultURL), chrome: true, inNav: true },
+        { appKey: "giftcard", enabledKey: "giftCardOptions", label: "Giftcard", enabled: fp.giftCardOptions, slug: fp.giftcardDefaultSlug, url: r(fp.giftcardDefaultURL), chrome: true, inNav: true },
+        { appKey: "ar-menu", enabledKey: "tableOrder", label: "AR Menu", enabled: fp.tableOrder, slug: fp.arMenuDefaultSlug, url: r(fp.arMenuDefaultURL), chrome: false, inNav: false },
+    ];
+}
 const DEFAULT_REVALIDATE_SECONDS = 300;
 function requireEnv(name) {
     const value = process.env[name];

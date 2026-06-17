@@ -5,7 +5,7 @@
  * components (ContentProvider, BuilderAgent) share this barrel; Next's
  * compiler splits them by the "use client" directives in each file.
  */
-export { fetchSiteContent, contentTag, type SiteContentDoc, type FetchOpts, } from "./site-content";
+export { fetchSiteContent, contentTag, resolveFeaturePageUrl, featurePageEntries, type SiteContentDoc, type FetchOpts, type FeaturePagesContent, type FeaturePageEntry, } from "./site-content";
 export { clientIdFromHost, withTenantResolution, CLIENT_ID_HEADER, type MiddlewareHandler, } from "./tenant";
 export { ContentProvider, useContent, type ContentValue } from "./content-provider";
 export { default as BuilderAgent } from "./builder-agent";

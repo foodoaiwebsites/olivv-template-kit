@@ -18,7 +18,62 @@ export interface SiteContentDoc {
   content: Record<string, unknown>;
   /** Theme tokens, e.g. `{ "--primary": "24 95% 53%" }`. */
   theme: Record<string, string>;
+  /** Flat config for the 4 managed app pages (order, booking, giftcard, ar-menu). */
+  featurePages?: FeaturePagesContent;
   version: number;
+}
+
+/**
+ * Flat config for the managed app pages served by the content API.
+ * Boolean flags toggle each app; the `*DefaultSlug`/`*DefaultURL` fields carry
+ * the route and the (templated) external URL. URL templates may contain
+ * `{slug}`, `{restaurantId}` (or the legacy `{resturantId}` typo).
+ */
+export interface FeaturePagesContent {
+  onlineOrder: boolean;
+  tableBookingOptions: boolean;
+  giftCardOptions: boolean;
+  tableOrder: boolean;
+  onlineOrderDefaultSlug: string;
+  bookingDefaultSlug: string;
+  giftcardDefaultSlug: string;
+  arMenuDefaultSlug: string;
+  onlineOrderDefaultURL: string;
+  bookingDefaultURL: string;
+  giftcardDefaultURL: string;
+  arMenuDefaultURL: string;
+  slug: string;
+  tenantId: string;
+}
+
+/** Resolve a feature-page URL template, substituting `{slug}` and `{restaurantId}`. */
+export function resolveFeaturePageUrl(template: string, vars: { slug: string; tenantId: string }): string {
+  return template
+    .replaceAll("{slug}", vars.slug)
+    .replaceAll("{restaurantId}", vars.tenantId)
+    .replaceAll("{resturantId}", vars.tenantId);
+}
+
+export type FeaturePageEntry = {
+  appKey: "order" | "booking" | "giftcard" | "ar-menu";
+  enabledKey: "onlineOrder" | "tableBookingOptions" | "giftCardOptions" | "tableOrder";
+  label: string;
+  enabled: boolean;
+  slug: string;
+  url: string;
+  chrome: boolean;
+  inNav: boolean;
+};
+
+/** Expand the flat `featurePages` config into ordered, resolved per-app entries. */
+export function featurePageEntries(fp: FeaturePagesContent): FeaturePageEntry[] {
+  const r = (t: string) => resolveFeaturePageUrl(t, { slug: fp.slug, tenantId: fp.tenantId });
+  return [
+    { appKey: "order",    enabledKey: "onlineOrder",         label: "Online Ordering", enabled: fp.onlineOrder,         slug: fp.onlineOrderDefaultSlug, url: r(fp.onlineOrderDefaultURL), chrome: true,  inNav: true },
+    { appKey: "booking",  enabledKey: "tableBookingOptions", label: "Table Booking",   enabled: fp.tableBookingOptions, slug: fp.bookingDefaultSlug,     url: r(fp.bookingDefaultURL),     chrome: true,  inNav: true },
+    { appKey: "giftcard", enabledKey: "giftCardOptions",     label: "Giftcard",        enabled: fp.giftCardOptions,     slug: fp.giftcardDefaultSlug,    url: r(fp.giftcardDefaultURL),    chrome: true,  inNav: true },
+    { appKey: "ar-menu",  enabledKey: "tableOrder",          label: "AR Menu",         enabled: fp.tableOrder,          slug: fp.arMenuDefaultSlug,      url: r(fp.arMenuDefaultURL),      chrome: false, inNav: false },
+  ];
 }
 
 export interface FetchOpts {

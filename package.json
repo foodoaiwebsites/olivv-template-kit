@@ -1,6 +1,6 @@
 {
   "name": "@olivv/template-kit",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Shared kit that makes standalone Next.js restaurant templates multi-tenant: runtime content, live edit, publish via revalidation.",
   "type": "module",
   "private": true,

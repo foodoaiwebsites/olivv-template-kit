@@ -8,8 +8,12 @@
 export {
   fetchSiteContent,
   contentTag,
+  resolveFeaturePageUrl,
+  featurePageEntries,
   type SiteContentDoc,
   type FetchOpts,
+  type FeaturePagesContent,
+  type FeaturePageEntry,
 } from "./site-content";
 export {
   clientIdFromHost,
