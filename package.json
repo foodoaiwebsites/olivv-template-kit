@@ -1,9 +1,12 @@
 {
-  "name": "@olivv/template-kit",
+  "name": "@foodoaiwebsites/template-kit",
   "version": "0.2.0",
   "description": "Shared kit that makes standalone Next.js restaurant templates multi-tenant: runtime content, live edit, publish via revalidation.",
   "type": "module",
-  "private": true,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com",
+    "access": "restricted"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
