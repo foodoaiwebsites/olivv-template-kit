@@ -21,7 +21,12 @@ export {
   CLIENT_ID_HEADER,
   type MiddlewareHandler,
 } from "./tenant";
-export { ContentProvider, useContent, type ContentValue } from "./content-provider";
+export {
+  ContentProvider,
+  PageContentProvider,
+  useContent,
+  type ContentValue,
+} from "./content-provider";
 export { default as BuilderAgent } from "./builder-agent";
 export { createRevalidateRoute, verifyHmacSignature } from "./revalidate-route";
 export {

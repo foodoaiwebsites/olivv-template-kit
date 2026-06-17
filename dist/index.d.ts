@@ -7,7 +7,7 @@
  */
 export { fetchSiteContent, contentTag, resolveFeaturePageUrl, featurePageEntries, type SiteContentDoc, type FetchOpts, type FeaturePagesContent, type FeaturePageEntry, } from "./site-content";
 export { clientIdFromHost, withTenantResolution, CLIENT_ID_HEADER, type MiddlewareHandler, } from "./tenant";
-export { ContentProvider, useContent, type ContentValue } from "./content-provider";
+export { ContentProvider, PageContentProvider, useContent, type ContentValue, } from "./content-provider";
 export { default as BuilderAgent } from "./builder-agent";
 export { createRevalidateRoute, verifyHmacSignature } from "./revalidate-route";
 export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, } from "./theme";
