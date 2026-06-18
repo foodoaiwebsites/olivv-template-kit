@@ -10,7 +10,7 @@ export { clientIdFromHost, withTenantResolution, CLIENT_ID_HEADER, type Middlewa
 export { ContentProvider, PageContentProvider, useContent, type ContentValue, } from "./content-provider";
 export { default as BuilderAgent } from "./builder-agent";
 export { createRevalidateRoute, verifyHmacSignature } from "./revalidate-route";
-export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, } from "./theme";
+export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, colorTokenStem, fontTokenName, tailwindColorsFromTokens, tailwindFontsFromTokens, cssThemeFromTokens, } from "./theme";
 export { getGeo, type GeoInfo, type GeoRequest } from "./geo";
 export { defineTemplateManifest, KIT_SCHEMA_VERSION, type TemplateManifest, } from "./manifest";
 export { defineTemplateSchema, toRegistryManifest, TEMPLATE_SCHEMA_VERSION, type TemplateSchemaV2, type PageSpec, type ThemeTokenSpec, type ThemePreset, type MediaSlotSpec, type VariationSpec, type TemplateRegistryManifest, type RegistryManifestPage, } from "./template-schema";

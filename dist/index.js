@@ -10,7 +10,7 @@ export { clientIdFromHost, withTenantResolution, CLIENT_ID_HEADER, } from "./ten
 export { ContentProvider, PageContentProvider, useContent, } from "./content-provider";
 export { default as BuilderAgent } from "./builder-agent";
 export { createRevalidateRoute, verifyHmacSignature } from "./revalidate-route";
-export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, } from "./theme";
+export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, colorTokenStem, fontTokenName, tailwindColorsFromTokens, tailwindFontsFromTokens, cssThemeFromTokens, } from "./theme";
 export { getGeo } from "./geo";
 export { defineTemplateManifest, KIT_SCHEMA_VERSION, } from "./manifest";
 export { defineTemplateSchema, toRegistryManifest, TEMPLATE_SCHEMA_VERSION, } from "./template-schema";

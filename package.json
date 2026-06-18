@@ -1,5 +1,5 @@
 {
-  "name": "@foodoaiwebsites/template-kit",
+  "name": "@olivv/template-kit",
   "version": "0.2.3",
   "description": "Shared kit that makes standalone Next.js restaurant templates multi-tenant: runtime content, live edit, publish via revalidation.",
   "type": "module",

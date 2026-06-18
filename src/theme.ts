@@ -4,6 +4,7 @@
  * (theme tokens use the `"h s% l%"` channel format from theme.css).
  */
 import { createElement, type ReactElement } from "react";
+import type { ThemeTokenSpec } from "./template-schema";
 
 /**
  * `{ "--primary": "24 95% 53%", accent: "#fff" }` → `:root{--primary:24 95% 53%;--accent:#fff}`.
@@ -88,4 +89,100 @@ export function hslChannelsToHex(value: string): string | null {
       .toString(16)
       .padStart(2, "0");
   return `#${to(r)}${to(g)}${to(b)}`;
+}
+
+/* ----------------------------------------------------------------------------
+ * Tailwind bridge generators — derive the utility wiring FROM `THEME_TOKENS`
+ * so a template never hand-maintains (and silently drifts from) the token list.
+ *
+ * Contract: color token values are HSL channel triplets ("h s% l%"), so every
+ * color utility MUST wrap them as `hsl(var(--<key>))`. Font tokens pass through
+ * as `var(--<key>)`. `text`-type tokens (e.g. `radius`) are not utilities here.
+ *
+ * Class naming is the token key VERBATIM, except the semantic text colors, which
+ * map to the `fg` namespace so they don't collide with Tailwind's own `text-*`
+ * utilities (or the existing `muted` color):
+ *   text                -> fg                  (bg-fg     / text-fg)
+ *   text-heading        -> fg-heading          (text-fg-heading)
+ *   btn-primary         -> btn-primary         (bg-btn-primary)
+ *   btn-primary-hover   -> btn-primary-hover   (hover:bg-btn-primary-hover)
+ *   primary-foreground  -> primary-foreground  (text-primary-foreground)
+ *   font-heading        -> heading             (font-heading)
+ *
+ * The same stem feeds both emitters, so v3 (JS config) and v4 (`@theme`) produce
+ * an IDENTICAL utility surface for a given token list.
+ * ------------------------------------------------------------------------- */
+
+/** Color token key → Tailwind class stem (the part after `bg-`/`text-`/`border-`). */
+export function colorTokenStem(key: string): string {
+  if (key === "text") return "fg";
+  if (key.startsWith("text-")) return `fg-${key.slice("text-".length)}`;
+  return key;
+}
+
+/** Font token key → Tailwind `fontFamily` name (the part after `font-`). */
+export function fontTokenName(key: string): string {
+  return key.startsWith("font-") ? key.slice("font-".length) : key;
+}
+
+/**
+ * Tailwind v3 `colors` fragment derived from the token specs:
+ * `{ "<stem>": "hsl(var(--<key>))" }` for every `color` token. Spread it into
+ * `theme.extend.colors` (template-specific overrides spread AFTER win):
+ *   colors: { ...tailwindColorsFromTokens(THEME_TOKENS), ...overrides }
+ */
+export function tailwindColorsFromTokens(tokens: ThemeTokenSpec[]): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const t of tokens) {
+    if (t.type !== "color") continue;
+    out[colorTokenStem(t.key)] = `hsl(var(--${t.key}))`;
+  }
+  return out;
+}
+
+/**
+ * Tailwind v3 `fontFamily` fragment derived from the token specs:
+ * `{ heading: ["var(--font-heading)", ...fallback] }` for every `font` token.
+ * `fallback` is appended to every slot; pass a different stack per slot by
+ * post-merging if a template needs serif vs sans fallbacks.
+ */
+export function tailwindFontsFromTokens(
+  tokens: ThemeTokenSpec[],
+  fallback: string[] = ["sans-serif"],
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const t of tokens) {
+    if (t.type !== "font") continue;
+    out[fontTokenName(t.key)] = [`var(--${t.key})`, ...fallback];
+  }
+  return out;
+}
+
+/**
+ * Tailwind v4 `@theme` body deriving the same utilities for CSS-first templates.
+ * Colors → `--color-<stem>: hsl(var(--<key>))`; fonts → `--font-<name>: var(--<key>)`.
+ *
+ * MUST live in an `@theme inline { … }` block: `inline` makes Tailwind emit the
+ * value INTO each utility (e.g. `.bg-primary{background:hsl(var(--primary))}`)
+ * instead of indirecting through a `--color-*` root var — which is what lets the
+ * utilities track the runtime-injected `--<key>` tokens, and what makes the
+ * self-referential font line (`--font-heading: var(--font-heading)`) safe.
+ *
+ * @param opts.wrap  false → return only the declarations (caller supplies the
+ *                   surrounding `@theme inline { … }`). Default true → full block.
+ */
+export function cssThemeFromTokens(
+  tokens: ThemeTokenSpec[],
+  opts: { wrap?: boolean } = {},
+): string {
+  const lines: string[] = [];
+  for (const t of tokens) {
+    if (t.type === "color") {
+      lines.push(`  --color-${colorTokenStem(t.key)}: hsl(var(--${t.key}));`);
+    } else if (t.type === "font") {
+      lines.push(`  --font-${fontTokenName(t.key)}: var(--${t.key});`);
+    }
+  }
+  const body = lines.join("\n");
+  return opts.wrap === false ? body : `@theme inline {\n${body}\n}`;
 }

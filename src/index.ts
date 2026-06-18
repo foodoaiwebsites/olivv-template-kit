@@ -34,6 +34,11 @@ export {
   ThemeStyle,
   hexToHslChannels,
   hslChannelsToHex,
+  colorTokenStem,
+  fontTokenName,
+  tailwindColorsFromTokens,
+  tailwindFontsFromTokens,
+  cssThemeFromTokens,
 } from "./theme";
 export { getGeo, type GeoInfo, type GeoRequest } from "./geo";
 export {
