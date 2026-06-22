@@ -59,3 +59,12 @@ export {
   type TemplateRegistryManifest,
   type RegistryManifestPage,
 } from "./template-schema";
+export {
+  OLIVV_FONT_OPTIONS,
+  OLIVV_THEME_TOKENS,
+  OLIVV_THEME_PRESETS,
+} from "./theme-defaults";
+export {
+  resolveRestaurantFeatures,
+  type RestaurantFeatures,
+} from "./restaurant-features";

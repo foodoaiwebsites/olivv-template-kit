@@ -10,6 +10,8 @@
 export interface SiteContentDoc {
     clientId: string;
     templateId: string;
+    /** Authoritative tenant id, sourced from the owning project server-side. */
+    tenantId: string;
     domain?: string;
     restaurantId?: string;
     locales: string[];

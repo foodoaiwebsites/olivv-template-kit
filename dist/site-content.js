@@ -91,6 +91,8 @@ function assertSiteContentDoc(json, clientId) {
     else {
         if (typeof json.clientId !== "string")
             problems.push("clientId is not a string");
+        if (typeof json.tenantId !== "string")
+            problems.push("tenantId is not a string");
         if (!isRecord(json.content))
             problems.push("content is not an object");
         if (!isRecord(json.theme))

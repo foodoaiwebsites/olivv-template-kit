@@ -41,8 +41,9 @@ Requires `next >= 14 < 16` and `react >= 18` (peer dependencies).
 | `CONTENT_API_KEY` | server-only — **NEVER `NEXT_PUBLIC_`** | API key for published reads + host resolution |
 | `REVALIDATE_HMAC_KEY` | server-only | Shared secret verifying `POST /api/revalidate` |
 | `TEMPLATE_ID` | server-only | This template's id (matches `template.manifest.json`) |
-| `DEV_CLIENT_ID` | dev only — ignored when `NODE_ENV=production` | Skip host resolution locally — every request resolves to this client |
 | `NEXT_PUBLIC_BUILDER_ORIGIN` | client-safe (no secret) | Default `allowedOrigin` for `BuilderAgent` postMessage locking |
+
+> Local dev / builder preview: pin the tenant with the `?__edit=1&client=<id>` query (the editor adds this automatically) — there is no env-based client default.
 
 ## Wire a template in 6 imports
 
@@ -196,6 +197,7 @@ From `@olivv/template-kit`:
 - `createRevalidateRoute({ hmacKey })`, `verifyHmacSignature(body, sig, key)` — publish revalidation
 - `themeStyleVars(tokens)`, `ThemeStyle`, `hexToHslChannels`, `hslChannelsToHex` — theming
 - `getGeo(req)` — provider-agnostic geo shim (`req.geo` → `x-vercel-ip-*` headers → `cf-*` headers → `{}`)
+- `resolveRestaurantFeatures(restaurant)`, `RestaurantFeatures` — per-feature page/link visibility (`onlineOrder`, `giftCard`, `tableBooking`, `tableOrder`) read from the operator record; defaults every feature ON when the record has no toggle
 - `defineTemplateManifest(m)`, `KIT_SCHEMA_VERSION`, `TemplateManifest` — manifest contract
 
 Notes:

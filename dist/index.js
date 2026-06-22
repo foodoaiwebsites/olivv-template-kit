@@ -14,3 +14,5 @@ export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, colorTo
 export { getGeo } from "./geo";
 export { defineTemplateManifest, KIT_SCHEMA_VERSION, } from "./manifest";
 export { defineTemplateSchema, toRegistryManifest, TEMPLATE_SCHEMA_VERSION, } from "./template-schema";
+export { OLIVV_FONT_OPTIONS, OLIVV_THEME_TOKENS, OLIVV_THEME_PRESETS, } from "./theme-defaults";
+export { resolveRestaurantFeatures, } from "./restaurant-features";

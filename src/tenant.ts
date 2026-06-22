@@ -24,16 +24,13 @@ const resolveCache = new Map<string, CacheEntry>();
  * Resolve a Host header value to a clientId.
  *
  * - Strips the port, lowercases.
- * - `DEV_CLIENT_ID` env (if set) short-circuits everything — local dev fallback,
- *   ignored when `NODE_ENV === "production"` so a stray prod env var can't
- *   collapse every host to one client.
- * - Otherwise asks the Content API: `GET /site-content/resolve?host=<host>`.
+ * - Asks the Content API: `GET /site-content/resolve?host=<host>`.
  * - Results (including misses) are cached for 60s (capped at 1000 entries).
+ *
+ * For local dev / builder preview, pin the tenant with the `?__edit=1&client=<id>`
+ * query (see `withTenantResolution`) rather than an env-based default.
  */
 export async function clientIdFromHost(host: string): Promise<string | null> {
-  const devClientId = process.env.DEV_CLIENT_ID;
-  if (devClientId && process.env.NODE_ENV !== "production") return devClientId;
-
   const normalized = host.split(":")[0]?.trim().toLowerCase() ?? "";
   if (!normalized) return null;
 
@@ -55,8 +52,7 @@ async function resolveViaApi(host: string): Promise<string | null> {
   const apiKey = process.env.CONTENT_API_KEY;
   if (!baseUrl || !apiKey) {
     throw new Error(
-      "@olivv/template-kit: CONTENT_API_URL and CONTENT_API_KEY must be set to resolve tenants " +
-        "(or set DEV_CLIENT_ID for local dev).",
+      "@olivv/template-kit: CONTENT_API_URL and CONTENT_API_KEY must be set to resolve tenants.",
     );
   }
   try {

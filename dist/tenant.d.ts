@@ -10,11 +10,11 @@ export declare const CLIENT_ID_HEADER = "x-client-id";
  * Resolve a Host header value to a clientId.
  *
  * - Strips the port, lowercases.
- * - `DEV_CLIENT_ID` env (if set) short-circuits everything — local dev fallback,
- *   ignored when `NODE_ENV === "production"` so a stray prod env var can't
- *   collapse every host to one client.
- * - Otherwise asks the Content API: `GET /site-content/resolve?host=<host>`.
+ * - Asks the Content API: `GET /site-content/resolve?host=<host>`.
  * - Results (including misses) are cached for 60s (capped at 1000 entries).
+ *
+ * For local dev / builder preview, pin the tenant with the `?__edit=1&client=<id>`
+ * query (see `withTenantResolution`) rather than an env-based default.
  */
 export declare function clientIdFromHost(host: string): Promise<string | null>;
 export type MiddlewareHandler = (req: NextRequest) => Response | undefined | void | Promise<Response | undefined | void>;

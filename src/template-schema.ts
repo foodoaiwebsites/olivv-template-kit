@@ -41,6 +41,24 @@ export type MediaSlotSpec = {
   key: string;
   type: "image" | "video";
   label: string;
+  /**
+   * Build-shipped default URL, if any. Surfaced in the registry manifest so the
+   * builder's Media panel can preview the template default for an unfilled slot
+   * (mirrors `ThemeTokenSpec.default`). "" / undefined → render the empty state.
+   */
+  default?: string;
+  /**
+   * Page slug this slot belongs to (matches a `pages[].slug`). Lets the builder
+   * scope the Media panel per page, like sections/variants. Omitted → site-wide
+   * (e.g. logo, favicon, og.image), shown on every page.
+   */
+  page?: string;
+  /**
+   * Human-readable section the slot belongs to (e.g. "Hero", "About"). Lets the
+   * builder group slots section-by-section within a page, like the Variation
+   * panel groups variants. Omitted → ungrouped / site-wide.
+   */
+  section?: string;
 };
 
 /** One look/layout variation a template offers (always at least "default"). */

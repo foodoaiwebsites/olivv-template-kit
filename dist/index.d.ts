@@ -14,3 +14,5 @@ export { themeStyleVars, ThemeStyle, hexToHslChannels, hslChannelsToHex, colorTo
 export { getGeo, type GeoInfo, type GeoRequest } from "./geo";
 export { defineTemplateManifest, KIT_SCHEMA_VERSION, type TemplateManifest, } from "./manifest";
 export { defineTemplateSchema, toRegistryManifest, TEMPLATE_SCHEMA_VERSION, type TemplateSchemaV2, type PageSpec, type ThemeTokenSpec, type ThemePreset, type MediaSlotSpec, type VariationSpec, type TemplateRegistryManifest, type RegistryManifestPage, } from "./template-schema";
+export { OLIVV_FONT_OPTIONS, OLIVV_THEME_TOKENS, OLIVV_THEME_PRESETS, } from "./theme-defaults";
+export { resolveRestaurantFeatures, type RestaurantFeatures, } from "./restaurant-features";

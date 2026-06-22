@@ -11,6 +11,8 @@
 export interface SiteContentDoc {
   clientId: string;
   templateId: string;
+  /** Authoritative tenant id, sourced from the owning project server-side. */
+  tenantId: string;
   domain?: string;
   restaurantId?: string;
   locales: string[];
@@ -167,6 +169,7 @@ function assertSiteContentDoc(json: unknown, clientId: string): SiteContentDoc {
     problems.push("response body is not an object");
   } else {
     if (typeof json.clientId !== "string") problems.push("clientId is not a string");
+    if (typeof json.tenantId !== "string") problems.push("tenantId is not a string");
     if (!isRecord(json.content)) problems.push("content is not an object");
     if (!isRecord(json.theme)) problems.push("theme is not an object");
     if (typeof json.version !== "number") problems.push("version is not a number");
