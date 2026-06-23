@@ -54,6 +54,15 @@ export default function BuilderAgent({ allowedOrigin }: { allowedOrigin?: string
       }
     };
 
+    // A playing <video> keeps the old clip after a `src` swap until `.load()` is
+    // called — and when the swapped element is a <source> child, load() must run
+    // on the parent <video>. Without this, builder media edits on video slots
+    // only take effect after a full page refresh.
+    const reloadVideo = (el: HTMLElement) => {
+      const v = el.tagName === "SOURCE" ? el.parentElement : el;
+      if (v && v.tagName === "VIDEO") (v as HTMLVideoElement).load?.();
+    };
+
     const setImage = (prev: string, next: string) => {
       const hit = (cur: string) => {
         if (!cur) return false;
@@ -68,7 +77,7 @@ export default function BuilderAgent({ allowedOrigin }: { allowedOrigin?: string
         if (hit(el.getAttribute("src") ?? "")) {
           el.setAttribute("src", next);
           el.removeAttribute("srcset"); // stop the responsive set from overriding our swap
-          if (el.tagName === "VIDEO") (el as HTMLVideoElement).load?.();
+          reloadVideo(el);
           return;
         }
       }
@@ -88,7 +97,7 @@ export default function BuilderAgent({ allowedOrigin }: { allowedOrigin?: string
       if (tag === "IMG" || tag === "VIDEO" || tag === "SOURCE") {
         el.setAttribute("src", value);
         el.removeAttribute("srcset");
-        if (tag === "VIDEO") (el as HTMLVideoElement).load?.();
+        reloadVideo(el as HTMLElement);
       } else {
         el.textContent = value;
       }
